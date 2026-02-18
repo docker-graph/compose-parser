@@ -18,7 +18,7 @@ func (p *ComposeParser) ParseToReactFlow(project *ComposeProjectConfig, options 
 	dockerComposeNode := p.createDockerComposeNode(project, options, dimensions)
 
 	// 4. Создание нод сетей
-	networkNodes, networkNodeMap := p.createNetworkNodes(project, options, dimensions)
+	networkNodes, networkNodeMap, edges := p.createNetworkNodes(project, options, dimensions)
 
 	// 5. Создание нод сервисов
 	serviceNodes, serviceMap := p.createServiceNodes(project, options, dimensions)
@@ -43,7 +43,7 @@ func (p *ComposeParser) ParseToReactFlow(project *ComposeProjectConfig, options 
 	viewport := p.calculateViewport(allNodes, options)
 
 	// 12. Создание финального графа
-	allEdges := append(append(networkEdges, dependsEdges...), serviceToVolumeEdges...)
+	allEdges := append(append(append(networkEdges, dependsEdges...), serviceToVolumeEdges...), edges...)
 	return p.buildFinalGraph(project, allNodes, allEdges, viewport), nil
 }
 
@@ -147,8 +147,9 @@ func (p *ComposeParser) createDockerComposeNode(project *ComposeProjectConfig, o
 }
 
 // createNetworkNodes создает ноды сетей (вторая колонка)
-func (p *ComposeParser) createNetworkNodes(project *ComposeProjectConfig, options *GraphLayoutOptions, dimensions *GraphDimensions) ([]ReactFlowNode, map[string]string) {
+func (p *ComposeParser) createNetworkNodes(project *ComposeProjectConfig, options *GraphLayoutOptions, dimensions *GraphDimensions) ([]ReactFlowNode, map[string]string, []ReactFlowEdge) {
 	nodes := make([]ReactFlowNode, 0)
+	edges := make([]ReactFlowEdge, 0)
 	networkNodes := make(map[string]string)
 
 	// Получаем список сетей и сортируем их
@@ -187,9 +188,16 @@ func (p *ComposeParser) createNetworkNodes(project *ComposeProjectConfig, option
 		}
 		nodes = append(nodes, networkNode)
 		networkIndex++
+		edge := ReactFlowEdge{
+			ID:     fmt.Sprintf("edge-compose-network-%s", networkName),
+			Source: "docker-compose",
+			Target: nodeID,
+			Type:   "step",
+		}
+		edges = append(edges, edge)
 	}
 
-	return nodes, networkNodes
+	return nodes, networkNodes, edges
 }
 
 // createServiceNodes создает ноды сервисов (центральная колонка)
