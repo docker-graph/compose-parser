@@ -9,7 +9,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -49,7 +48,6 @@ func (p *ComposeParser) ParseFileWithName(filePath string, projectName string) (
 		dir := filepath.Dir(filePath)
 		projectName = filepath.Base(dir)
 		projectName = strings.ToLower(projectName)
-		projectName = regexp.MustCompile(`[^a-z0-9_-]`).ReplaceAllString(projectName, "_")
 	}
 
 	return p.parseYAML(data, projectName)
