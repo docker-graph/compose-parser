@@ -215,14 +215,14 @@ func (p *ComposeParser) createServiceNodes(project *ComposeProjectConfig, option
 
 		serviceNode := ReactFlowNode{
 			ID:   nodeID,
-			Type: "services",
+			Type: "service",
 			Position: ReactFlowPosition{
 				X: float64(x),
 				Y: float64(y),
 			},
 			Data: ReactFlowNodeData{
 				Label:   serviceName,
-				Type:    "services",
+				Type:    "service",
 				Service: service,
 				Status:  "saved",
 				Properties: map[string]interface{}{
@@ -310,7 +310,7 @@ func (p *ComposeParser) collectVolumeUsage(project *ComposeProjectConfig, servic
 
 	// Собираем позиции сервисов
 	for _, node := range serviceNodes {
-		if node.Type == "services" {
+		if node.Type == "service" {
 			servicePositions[node.Data.Label] = node.Position
 		}
 	}

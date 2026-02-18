@@ -2,11 +2,11 @@
 
 [![Go Version](https://img.shields.io/badge/go-1.24+-00ADD8.svg)](https://golang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-v0.3.3-blue.svg)](https://github.com/docker-graph/compose-parser)
+[![Version](https://img.shields.io/badge/version-v0.3.4-blue.svg)](https://github.com/docker-graph/compose-parser)
 
 A Go library for parsing Docker Compose files (docker-compose.yml) with support for Docker Compose specification v3 and v2.
 
-**Version:** v0.3.3 
+**Version:** v0.3.4 
 **Author:** Docker Graph Team  
 **License:** MIT
 
