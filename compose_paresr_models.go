@@ -1,7 +1,3 @@
-// Package compose_parser provides Go types for Docker Compose file parsing.
-// Version: v0.1.0
-// Author: Docker Graph Team
-// License: MIT
 package compose_parser
 
 import (
@@ -331,10 +327,41 @@ type ReactFlowViewport struct {
 
 // GraphLayoutOptions представляет опции для размещения графа
 type GraphLayoutOptions struct {
-	Direction  string `json:"direction"` // 'TB', 'BT', 'LR', 'RL'
-	NodeWidth  int    `json:"node_width"`
-	NodeHeight int    `json:"node_height"`
-	NodeGapX   int    `json:"node_gap_x"`
-	NodeGapY   int    `json:"node_gap_y"`
-	Padding    int    `json:"padding"`
+	Direction          string `json:"direction"` // 'TB', 'BT', 'LR', 'RL'
+	NodeWidth          int    `json:"node_width"`
+	NodeHeight         int    `json:"node_height"`
+	NodeGapX           int    `json:"node_gap_x"`
+	NodeGapY           int    `json:"node_gap_y"`
+	Padding            int    `json:"padding"`
+	ColumnGap          int    `json:"column_gap"`
+	ColumnTopGap       int    `json:"column_top_gap"`
+	DockerComposeStart int    `json:"docker_compose_start"`
+	VolumeXOffset      int    `json:"volume_x_offset"`
+	VolumeYOffset      int    `json:"volume_y_offset"`
+	LastY              int    `json:"last_y"`
+}
+
+type networkWithName struct {
+	name    string
+	network *NetworkConfig
+}
+
+type volumeWithOrder struct {
+	name   string
+	order  int
+	volume *VolumeConfig
+}
+
+type positionedVolume struct {
+	name     string
+	volume   *VolumeConfig
+	targetY  int
+	serviceX int // Средняя X сервисов
+	usedBy   []string
+}
+
+type serviceWithOrder struct {
+	name    string
+	order   int
+	service *ComposeServiceConfig
 }

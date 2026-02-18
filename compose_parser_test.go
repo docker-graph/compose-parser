@@ -424,3 +424,78 @@ services:
 		t.Error("CreatedAt should be recent")
 	}
 }
+
+func TestParseToReactFlow_Basic(t *testing.T) {
+	yamlContent := `
+version: '3.8'
+services:
+  web:
+    image: nginx:latest
+    ports:
+      - "80:80"
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: secret
+`
+
+	parser := compose_parser.NewComposeParser()
+	project, err := parser.ParseYAML([]byte(yamlContent))
+	if err != nil {
+		t.Fatalf("ParseYAML failed: %v", err)
+	}
+
+	graph, err := parser.ParseToReactFlow(*project, nil)
+	if err != nil {
+		t.Fatalf("ParseToReactFlow failed: %v", err)
+	}
+
+	if graph == nil {
+		t.Fatal("ParseToReactFlow returned nil graph")
+	}
+
+	// Basic validation
+	if graph.Project == "" {
+		t.Error("Project name should not be empty")
+	}
+
+	if len(graph.Nodes) == 0 {
+		t.Error("Graph should contain nodes")
+	}
+
+	// Check for docker-compose node
+	dockerComposeFound := false
+	for _, node := range graph.Nodes {
+		if node.ID == "docker-compose" {
+			dockerComposeFound = true
+			if node.Type != "compose" {
+				t.Errorf("Expected node type 'compose', got '%s'", node.Type)
+			}
+			break
+		}
+	}
+	if !dockerComposeFound {
+		t.Error("Docker compose node not found")
+	}
+
+	// Check for service nodes
+	serviceNodes := 0
+	for _, node := range graph.Nodes {
+		if node.Type == "service" {
+			serviceNodes++
+		}
+	}
+	if serviceNodes != 2 {
+		t.Errorf("Expected 2 service nodes, got %d", serviceNodes)
+	}
+
+	// Check that edges exist
+	if len(graph.Edges) == 0 {
+		t.Error("Graph should contain edges")
+	}
+
+	// Check timestamps
+	if graph.CreatedAt.IsZero() {
+		t.Error("CreatedAt should be set")
+	}
+}

@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -29,19 +30,16 @@ func (p *ComposeParser) ParseFile(filePath string) (*ComposeProjectConfig, error
 }
 
 func (p *ComposeParser) ParseFileWithName(filePath string, projectName string) (*ComposeProjectConfig, error) {
-	// Проверяем расширение файла
 	ext := strings.ToLower(filepath.Ext(filePath))
 	if ext != ".yaml" && ext != ".yml" {
 		return nil, fmt.Errorf("unsupported file extension: %s, expected .yaml or .yml", ext)
 	}
 
-	// Читаем файл
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file %s: %v", filePath, err)
 	}
 
-	// Если имя проекта не указано, используем имя файла без расширения
 	if projectName == "" {
 		baseName := filepath.Base(filePath)
 		projectName = strings.TrimSuffix(baseName, filepath.Ext(baseName))
@@ -1234,4 +1232,634 @@ func (p *ComposeParser) ParseFromDirectory(dirPath string) ([]*ComposeProjectCon
 	}
 
 	return projects, nil
+}
+
+// ParseToReactFlow генерирует структурированный React Flow граф из Docker Compose проекта
+func (p *ComposeParser) ParseToReactFlow(project ComposeProjectConfig, options *GraphLayoutOptions) (*ReactFlowGraph, error) {
+
+	if options == nil {
+		options = &GraphLayoutOptions{
+			Direction:          "LR",
+			NodeWidth:          240,
+			NodeHeight:         120,
+			NodeGapX:           100,
+			NodeGapY:           50,
+			Padding:            50,
+			ColumnGap:          440,
+			ColumnTopGap:       120,
+			DockerComposeStart: -350,
+			VolumeXOffset:      300,
+			VolumeYOffset:      180,
+			LastY:              -1000,
+		}
+	}
+
+	// Генерируем узлы и связи
+	nodes := make([]ReactFlowNode, 0)
+	edges := make([]ReactFlowEdge, 0)
+	edgeCounter := 0
+
+	// 1. Рассчитываем размеры и позиции
+	serviceCount := len(project.Services)
+	volumeCount := len(project.Volumes)
+	networkCount := len(project.Networks)
+
+	// 1. Создаем DockerCompose ноду (самая левая)
+	dockerComposeX := 0
+	dockerComposeY := (serviceCount*options.NodeHeight)/2 - 10
+
+	dockerComposeNode := ReactFlowNode{
+		ID:   "docker-compose",
+		Type: "compose",
+		Position: ReactFlowPosition{
+			X: float64(options.DockerComposeStart),
+			Y: float64(dockerComposeY),
+		},
+		Data: ReactFlowNodeData{
+			Label: project.Name,
+			Type:  "compose",
+			Properties: map[string]interface{}{
+				"services": serviceCount,
+				"networks": len(project.Networks),
+				"volumes":  volumeCount,
+				"version":  project.Version,
+			},
+		},
+	}
+	nodes = append(nodes, dockerComposeNode)
+
+	// 2. Создаем Network ноды (вторая колонка, между DockerCompose и Services)
+	// Выравниваем сети из центра относительно высоты всех сервисов
+	networkStartX := dockerComposeX + 20 // Позиция между DockerCompose и Services
+
+	// Рассчитываем высоту, занимаемую всеми сервисами
+	serviceHeight := serviceCount * options.NodeHeight
+	if serviceHeight < options.NodeWidth {
+		serviceHeight = options.NodeWidth
+	}
+
+	// Рассчитываем высоту, занимаемую всеми сетями
+	networkHeight := networkCount * options.NodeHeight // 120px отступ между сетями
+	if networkHeight < options.NodeHeight {
+		networkHeight = options.NodeHeight // Минимальная высота для сетей
+	}
+
+	// Центрируем сети относительно высоты сервисов
+	// Если сервисов больше, чем сетей, центрируем сети в середине высоты сервисов
+	// Если сетей больше, чем сервисов, центрируем сервисы в середине высоты сетей
+	// Используем options.Padding как базовую позицию сервисов (serviceStartY будет равен этому значению)
+	serviceBaseY := options.Padding
+	var networkStartY int
+	if serviceHeight >= networkHeight {
+		networkStartY = serviceBaseY + (serviceHeight-networkHeight)/2
+	} else {
+		networkStartY = serviceBaseY - (networkHeight-serviceHeight)/2
+	}
+
+	networksList := make([]networkWithName, 0, len(project.Networks))
+	for networkName, network := range project.Networks {
+		networksList = append(networksList, networkWithName{
+			name:    networkName,
+			network: network,
+		})
+	}
+
+	sort.Slice(networksList, func(i, j int) bool {
+		return networksList[i].name < networksList[j].name
+	})
+
+	networkIndex := 0
+	networkNodes := make(map[string]string)
+
+	for _, item := range networksList {
+		networkName := item.name
+		network := item.network
+
+		// Позиционируем сети вертикально во второй колонке
+		x := networkStartX
+		y := networkStartY + networkIndex*120 // 120px отступ между сетями
+
+		nodeID := fmt.Sprintf("network-%s", networkName)
+		networkNodes[networkName] = nodeID
+
+		networkNode := ReactFlowNode{
+			ID:   nodeID,
+			Type: "network",
+			Position: ReactFlowPosition{
+				X: float64(x),
+				Y: float64(y),
+			},
+			Data: ReactFlowNodeData{
+				Label:   networkName,
+				Type:    "network",
+				Network: network,
+				Properties: map[string]interface{}{
+					"driver":     network.Driver,
+					"internal":   network.Internal,
+					"external":   network.External,
+					"attachable": network.Attachable,
+				},
+			},
+		}
+		nodes = append(nodes, networkNode)
+
+		// Создаем связь от DockerCompose к сети
+		edgeCounter++
+		edge := ReactFlowEdge{
+			ID:     fmt.Sprintf("edge-compose-network-%s", networkName),
+			Source: "docker-compose",
+			Target: nodeID,
+			Type:   "step",
+		}
+		edges = append(edges, edge)
+
+		networkIndex++
+	}
+
+	// 3. Создаем Service ноды (центральная колонка)
+	serviceStartX := dockerComposeX + options.ColumnGap
+	serviceStartY := options.Padding
+
+	servicesList := make([]serviceWithOrder, 0, len(project.Services))
+	for serviceName, service := range project.Services {
+		servicesList = append(servicesList, serviceWithOrder{
+			name:    serviceName,
+			order:   service.Order,
+			service: service,
+		})
+	}
+
+	// Сортируем сервисы по порядку (Order)
+	sort.Slice(servicesList, func(i, j int) bool {
+		if servicesList[i].order == 0 && servicesList[j].order == 0 {
+			idxI := -1
+			idxJ := -1
+			for k, name := range project.ServiceOrder {
+				if name == servicesList[i].name {
+					idxI = k
+				}
+				if name == servicesList[j].name {
+					idxJ = k
+				}
+				if idxI != -1 && idxJ != -1 {
+					break
+				}
+			}
+
+			if idxI != -1 && idxJ != -1 {
+				return idxI < idxJ
+			}
+
+			if idxI == -1 {
+				return false
+			}
+			if idxJ == -1 {
+				return true
+			}
+		}
+		// Сортируем по полю Order
+		return servicesList[i].order < servicesList[j].order
+	})
+
+	serviceIndex := 0
+	for _, item := range servicesList {
+		serviceName := item.name
+		service := item.service
+
+		// Позиционируем сервисы вертикально в центральной колонке
+		x := serviceStartX
+		y := serviceStartY + serviceIndex*options.ColumnTopGap
+
+		nodeID := fmt.Sprintf("service-%s", serviceName)
+
+		nodeColor := "#3b82f6"
+
+		serviceNode := ReactFlowNode{
+			ID:   nodeID,
+			Type: "service",
+			Position: ReactFlowPosition{
+				X: float64(x),
+				Y: float64(y),
+			},
+			Data: ReactFlowNodeData{
+				Label:   serviceName,
+				Type:    "service",
+				Service: service,
+				Status:  "saved",
+				Properties: map[string]interface{}{
+					"image":      service.Image,
+					"ports":      len(service.Ports),
+					"volumes":    len(service.Volumes),
+					"depends_on": len(service.DependsOn),
+					"networks":   len(service.Networks),
+					"color":      nodeColor,
+					"order":      service.Order,
+				},
+			},
+		}
+		nodes = append(nodes, serviceNode)
+
+		// 4. Создаем связи от сетей к сервису (если сервис использует сети)
+		hasNetworkConnections := false
+		for _, networkName := range service.Networks {
+			if networkNodeID, exists := networkNodes[networkName]; exists {
+				edgeCounter++
+				// Получаем IP-адрес сервиса в этой сети
+				// ipAddress := getServiceIPInNetwork(serviceName, networkName)
+				edgeLabel := networkName
+				labelStyle := map[string]interface{}{
+					"fill":      "#3b82f6",
+					"opacity":   .4,
+					"textAlign": "center",
+				}
+
+				edge := ReactFlowEdge{
+					ID:     fmt.Sprintf("edge-network-service-%s-%s", networkName, serviceName),
+					Source: networkNodeID,
+					Target: nodeID,
+					Type:   "smoothstep",
+					Style: map[string]interface{}{
+						"strokeWidth": 0,
+						"stroke":      "transparent", // Синий цвет для связей сетей
+					},
+					Label:      edgeLabel,
+					LabelStyle: labelStyle,
+				}
+				edges = append(edges, edge)
+				hasNetworkConnections = true
+			}
+		}
+
+		// 5. Создаем связь от DockerCompose к сервису если:
+		// - у сервиса нет сетей ИЛИ
+		// - у сервиса есть сети, но они не определены в проекте (внешние сети)
+		if !hasNetworkConnections {
+			edgeCounter++
+			edge := ReactFlowEdge{
+				ID:     fmt.Sprintf("edge-compose-service-%d", edgeCounter),
+				Source: "docker-compose",
+				Target: nodeID,
+				Type:   "smoothstep",
+				Style: map[string]interface{}{
+					"strokeWidth":     1.5,
+					"strokeDasharray": "5,5",
+				},
+			}
+			edges = append(edges, edge)
+		}
+
+		serviceIndex++
+	}
+
+	// 6. Собираем информацию об использовании томов сервисами
+	volumeUsage := make(map[string][]string)
+	volumeUsed := make(map[string]bool)
+	volumeServiceX := make(map[string]int)
+	volumeServiceY := make(map[string]int)
+	serviceXPositions := make(map[string]int)
+	serviceYPositions := make(map[string]int)
+
+	servicePosIndex := 0
+	for _, item := range servicesList {
+		serviceName := item.name
+		x := serviceStartX
+		y := serviceStartY + servicePosIndex*options.ColumnTopGap
+		serviceXPositions[serviceName] = x
+		serviceYPositions[serviceName] = y
+		servicePosIndex++
+	}
+
+	for _, item := range servicesList {
+		serviceName := item.name
+		service := item.service
+
+		for _, volumeMount := range service.Volumes {
+			if volumeMount.Type == "volume" && volumeMount.Source != "" {
+				volumeName := volumeMount.Source
+				volumeUsage[volumeName] = append(volumeUsage[volumeName], serviceName)
+				volumeUsed[volumeName] = true
+			}
+		}
+	}
+
+	for volumeName, serviceNames := range volumeUsage {
+		if len(serviceNames) > 0 {
+
+			sumX := 0
+			sumY := 0
+			count := 0
+			for _, serviceName := range serviceNames {
+				if x, exists := serviceXPositions[serviceName]; exists {
+					sumX += x
+					count++
+				}
+				if y, exists := serviceYPositions[serviceName]; exists {
+					sumY += y
+				}
+			}
+
+			if count > 0 {
+				volumeServiceX[volumeName] = sumX / count
+				volumeServiceY[volumeName] = sumY / count
+			}
+		}
+	}
+
+	volumesList := make([]volumeWithOrder, 0, len(project.Volumes))
+	for volumeName, volume := range project.Volumes {
+		volumesList = append(volumesList, volumeWithOrder{
+			name:   volumeName,
+			order:  volume.Order,
+			volume: volume,
+		})
+	}
+
+	sort.Slice(volumesList, func(i, j int) bool {
+
+		if volumesList[i].order == 0 && volumesList[j].order == 0 {
+
+			idxI := -1
+			idxJ := -1
+			for k, name := range project.VolumeOrder {
+				if name == volumesList[i].name {
+					idxI = k
+				}
+				if name == volumesList[j].name {
+					idxJ = k
+				}
+				if idxI != -1 && idxJ != -1 {
+					break
+				}
+			}
+
+			if idxI != -1 && idxJ != -1 {
+				return idxI < idxJ
+			}
+
+			if idxI == -1 {
+				return false
+			}
+			if idxJ == -1 {
+				return true
+			}
+		}
+
+		return volumesList[i].order < volumesList[j].order
+	})
+
+	volumeXOffset := options.VolumeXOffset
+	unusedVolumeStartY := dockerComposeY + options.VolumeYOffset
+
+	usedVolumes := make([]positionedVolume, 0)
+	unusedVolumes := make([]positionedVolume, 0)
+
+	for _, item := range volumesList {
+		volumeName := item.name
+		if volumeUsed[volumeName] {
+			usedVolumes = append(usedVolumes, positionedVolume{
+				name:     volumeName,
+				volume:   item.volume,
+				targetY:  volumeServiceY[volumeName],
+				serviceX: volumeServiceX[volumeName],
+				usedBy:   volumeUsage[volumeName],
+			})
+		} else {
+			unusedVolumes = append(unusedVolumes, positionedVolume{
+				name:   volumeName,
+				volume: item.volume,
+				usedBy: volumeUsage[volumeName],
+			})
+		}
+	}
+
+	sort.Slice(usedVolumes, func(i, j int) bool {
+		return usedVolumes[i].targetY < usedVolumes[j].targetY
+	})
+
+	volumeStartY := options.Padding
+	lastY := options.LastY
+
+	for i, vol := range usedVolumes {
+		var x, y int
+		nodeID := fmt.Sprintf("volume-%s", vol.name)
+
+		desiredY := vol.targetY
+
+		if i == 0 {
+			if desiredY < volumeStartY {
+				y = volumeStartY
+			} else {
+				y = desiredY
+			}
+		} else {
+			minY := lastY + options.ColumnTopGap
+			if desiredY < minY {
+				y = minY
+			} else {
+				y = desiredY
+			}
+		}
+
+		lastY = y
+		x = vol.serviceX + volumeXOffset
+
+		volumeNode := ReactFlowNode{
+			ID:   nodeID,
+			Type: "volume",
+			Position: ReactFlowPosition{
+				X: float64(x),
+				Y: float64(y),
+			},
+			Data: ReactFlowNodeData{
+				Label:  vol.name,
+				Type:   "volume",
+				Volume: vol.volume,
+				Properties: map[string]interface{}{
+					"driver":   vol.volume.Driver,
+					"external": vol.volume.External,
+					"order":    vol.volume.Order,
+					"used_by":  vol.usedBy, // Список сервисов, использующих том
+					"used":     true,       // Флаг использования
+				},
+			},
+		}
+		nodes = append(nodes, volumeNode)
+	}
+
+	// Позиционируем неиспользуемые тома
+	for i, vol := range unusedVolumes {
+		var x, y int
+		nodeID := fmt.Sprintf("volume-%s", vol.name)
+
+		// Неиспользуемый том: позиционируем под compose нодой (такой же X)
+		x = options.DockerComposeStart
+		y = unusedVolumeStartY + i*options.NodeGapX
+		volumeNode := ReactFlowNode{
+			ID:   nodeID,
+			Type: "volume",
+			Position: ReactFlowPosition{
+				X: float64(x),
+				Y: float64(y),
+			},
+			Style: map[string]interface{}{
+				"opacity": 0.5,
+			},
+			Data: ReactFlowNodeData{
+				Label:  vol.name,
+				Type:   "volume",
+				Volume: vol.volume,
+				Status: "unused", // Статус неиспользуемого тома
+				Properties: map[string]interface{}{
+					"driver":   vol.volume.Driver,
+					"external": vol.volume.External,
+					"order":    vol.volume.Order,
+					"used_by":  vol.usedBy, // Список сервисов, использующих том
+					"used":     false,      // Флаг использования
+					"status":   "unused",   // Статус для фильтрации
+				},
+			},
+		}
+		nodes = append(nodes, volumeNode)
+
+		// Добавляем связь от Docker Compose к неиспользуемому тому
+		edgeCounter++
+		edge := ReactFlowEdge{
+			ID:           fmt.Sprintf("edge-compose-unused-volume-%s", vol.name),
+			Source:       "docker-compose",
+			SourceHandle: "docker-compose-source-2",
+			Target:       nodeID,
+			Type:         "step",
+			Style: map[string]interface{}{
+				"strokeWidth":     1,
+				"stroke":          "#9ca3af",
+				"strokeDasharray": "3,3",
+				"opacity":         0.6,
+			},
+			Label: "unused",
+			LabelStyle: map[string]interface{}{
+				"fill":         "#9ca3af",
+				"fontWeight":   "400",
+				"fontSize":     "9px",
+				"background":   "rgba(255, 255, 255, 0.8)",
+				"padding":      "1px 4px",
+				"borderRadius": "3px",
+			},
+		}
+		edges = append(edges, edge)
+	}
+
+	// 8. Добавляем связи depends_on между сервисами
+	// Сначала создаем карту всех сервисов
+	allServices := make(map[string]string) // name -> id
+	for _, node := range nodes {
+		if node.Type == "service" {
+			allServices[node.Data.Label] = node.ID
+		}
+	}
+
+	// Добавляем зависимости между сервисами
+	for _, item := range servicesList {
+		serviceName := item.name
+		service := item.service
+		sourceID := fmt.Sprintf("service-%s", serviceName)
+
+		for _, dependsOn := range service.DependsOn {
+			if targetID, exists := allServices[dependsOn]; exists {
+				edgeCounter++
+				edge := ReactFlowEdge{
+					ID:           fmt.Sprintf("edge-depends-%d", edgeCounter),
+					Source:       sourceID,
+					SourceHandle: fmt.Sprintf("%s-source-2", sourceID),
+					Target:       targetID,
+					TargetHandle: fmt.Sprintf("%s-target-2", targetID),
+					Type:         "smoothstep",
+					Animated:     true,
+				}
+				edges = append(edges, edge)
+			}
+		}
+	}
+
+	// 9. Добавляем связи сервисов с томами (если есть прямые связи)
+	// Примечание: связи уже учтены при позиционировании томов
+	for _, item := range servicesList {
+		serviceName := item.name
+		service := item.service
+		sourceID := fmt.Sprintf("service-%s", serviceName)
+
+		for _, volumeMount := range service.Volumes {
+			if volumeMount.Type == "volume" && volumeMount.Source != "" {
+				targetID := fmt.Sprintf("volume-%s", volumeMount.Source)
+
+				// Проверяем, существует ли такой том
+				volumeExists := false
+				for _, node := range nodes {
+					if node.ID == targetID {
+						volumeExists = true
+						break
+					}
+				}
+
+				if volumeExists {
+					edgeCounter++
+					edge := ReactFlowEdge{
+						ID:       fmt.Sprintf("edge-service-volume-%d", edgeCounter),
+						Source:   sourceID,
+						Target:   targetID,
+						Type:     "smoothstep",
+						Animated: true,
+					}
+					edges = append(edges, edge)
+				}
+			}
+		}
+	}
+
+	// 10. Настраиваем viewport для лучшего отображения
+	// Рассчитываем границы графа
+	var minX, minY, maxX, maxY float64
+	if len(nodes) > 0 {
+		minX = nodes[0].Position.X
+		minY = nodes[0].Position.Y
+		maxX = nodes[0].Position.X + float64(nodes[0].Width)
+		maxY = nodes[0].Position.Y + float64(nodes[0].Height)
+
+		for _, node := range nodes[1:] {
+			if node.Position.X < minX {
+				minX = node.Position.X
+			}
+			if node.Position.Y < minY {
+				minY = node.Position.Y
+			}
+			if node.Position.X+float64(node.Width) > maxX {
+				maxX = node.Position.X + float64(node.Width)
+			}
+			if node.Position.Y+float64(node.Height) > maxY {
+				maxY = node.Position.Y + float64(node.Height)
+			}
+		}
+
+		// Добавляем padding
+		minX -= float64(options.Padding)
+		minY -= float64(options.Padding)
+		maxX += float64(options.Padding)
+		maxY += float64(options.Padding)
+	}
+
+	// 11. Создаем финальный граф
+	graph := &ReactFlowGraph{
+		Nodes:     nodes,
+		Edges:     edges,
+		Project:   project.Name,
+		Layout:    "custom",
+		Direction: "LR",
+		Viewport: ReactFlowViewport{
+			X:    minX,
+			Y:    minY,
+			Zoom: 0.8,
+		},
+		CreatedAt: time.Now(),
+	}
+
+	return graph, nil
 }
