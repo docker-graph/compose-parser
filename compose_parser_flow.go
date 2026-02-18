@@ -30,7 +30,7 @@ func (p *ComposeParser) ParseToReactFlow(project *ComposeProjectConfig, options 
 	volumeUsage, servicePositions := p.collectVolumeUsage(project, serviceNodes)
 
 	// 8. Создание нод томов
-	volumeNodes := p.createVolumeNodes(project, options, dimensions, volumeUsage, servicePositions)
+	volumeNodes, volumeEdges := p.createVolumeNodes(project, options, dimensions, volumeUsage, servicePositions)
 
 	// 9. Создание связей зависимостей
 	dependsEdges := p.createDependsOnEdges(project, serviceMap)
@@ -43,7 +43,7 @@ func (p *ComposeParser) ParseToReactFlow(project *ComposeProjectConfig, options 
 	viewport := p.calculateViewport(allNodes, options)
 
 	// 12. Создание финального графа
-	allEdges := append(append(append(networkEdges, dependsEdges...), serviceToVolumeEdges...), edges...)
+	allEdges := append(append(append(networkEdges, dependsEdges...), serviceToVolumeEdges...), append(edges, volumeEdges...)...)
 	return p.buildFinalGraph(project, allNodes, allEdges, viewport), nil
 }
 
@@ -342,8 +342,9 @@ func (p *ComposeParser) collectVolumeUsage(project *ComposeProjectConfig, servic
 }
 
 // createVolumeNodes создает ноды томов (используемые и неиспользуемые)
-func (p *ComposeParser) createVolumeNodes(project *ComposeProjectConfig, options *GraphLayoutOptions, dimensions *GraphDimensions, volumeUsage map[string][]string, servicePositions map[string]ReactFlowPosition) []ReactFlowNode {
+func (p *ComposeParser) createVolumeNodes(project *ComposeProjectConfig, options *GraphLayoutOptions, dimensions *GraphDimensions, volumeUsage map[string][]string, servicePositions map[string]ReactFlowPosition) ([]ReactFlowNode, []ReactFlowEdge) {
 	nodes := make([]ReactFlowNode, 0)
+	edges := make([]ReactFlowEdge, 0)
 
 	// Рассчитываем средние позиции для используемых томов
 	volumeServiceX := make(map[string]int)
@@ -514,10 +515,10 @@ func (p *ComposeParser) createVolumeNodes(project *ComposeProjectConfig, options
 			},
 		}
 		// Примечание: связь добавляется отдельно в основной метод
-		_ = edge // В текущей реализации не добавляем, чтобы не дублировать
+		edges = append(edges, edge) // В текущей реализации не добавляем, чтобы не дублировать
 	}
 
-	return nodes
+	return nodes, edges
 }
 
 // createDependsOnEdges создает связи зависимостей между сервисами
