@@ -1,5 +1,5 @@
 // Package compose_parser provides a Go library for parsing Docker Compose files.
-// Version: v0.2.1
+// Version: v0.3.1
 // Author: Docker Graph Team
 // License: MIT
 package compose_parser
@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -39,9 +40,16 @@ func (p *ComposeParser) ParseFileWithName(filePath string, projectName string) (
 		return nil, fmt.Errorf("failed to read file %s: %v", filePath, err)
 	}
 
+	//if projectName == "" {
+	//	baseName := filepath.Base(filePath)
+	//	projectName = strings.TrimSuffix(baseName, filepath.Ext(baseName))
+	//}
+
 	if projectName == "" {
-		baseName := filepath.Base(filePath)
-		projectName = strings.TrimSuffix(baseName, filepath.Ext(baseName))
+		dir := filepath.Dir(filePath)
+		projectName = filepath.Base(dir)
+		projectName = strings.ToLower(projectName)
+		projectName = regexp.MustCompile(`[^a-z0-9_-]`).ReplaceAllString(projectName, "_")
 	}
 
 	return p.parseYAML(data, projectName)
