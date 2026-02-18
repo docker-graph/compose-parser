@@ -7,7 +7,7 @@ import (
 )
 
 // ParseToReactFlow парсит конфигурацию Docker Compose проекта в граф для React Flow
-func (p *ComposeParser) ParseToReactFlow(project ComposeProjectConfig, options *GraphLayoutOptions) (*ReactFlowGraph, error) {
+func (p *ComposeParser) ParseToReactFlow(project *ComposeProjectConfig, options *GraphLayoutOptions) (*ReactFlowGraph, error) {
 	// 1. Инициализация опций по умолчанию
 	options = p.initDefaultOptions(options)
 
@@ -69,7 +69,7 @@ func (p *ComposeParser) initDefaultOptions(options *GraphLayoutOptions) *GraphLa
 }
 
 // calculateGraphDimensions рассчитывает размеры и позиции для всех элементов графа
-func (p *ComposeParser) calculateGraphDimensions(project ComposeProjectConfig, options *GraphLayoutOptions) *GraphDimensions {
+func (p *ComposeParser) calculateGraphDimensions(project *ComposeProjectConfig, options *GraphLayoutOptions) *GraphDimensions {
 	serviceCount := len(project.Services)
 	volumeCount := len(project.Volumes)
 	networkCount := len(project.Networks)
@@ -125,7 +125,7 @@ func (p *ComposeParser) calculateGraphDimensions(project ComposeProjectConfig, o
 }
 
 // createDockerComposeNode создает ноду DockerCompose (самая левая)
-func (p *ComposeParser) createDockerComposeNode(project ComposeProjectConfig, options *GraphLayoutOptions, dimensions *GraphDimensions) ReactFlowNode {
+func (p *ComposeParser) createDockerComposeNode(project *ComposeProjectConfig, options *GraphLayoutOptions, dimensions *GraphDimensions) ReactFlowNode {
 	return ReactFlowNode{
 		ID:   "docker-compose",
 		Type: "compose",
@@ -147,7 +147,7 @@ func (p *ComposeParser) createDockerComposeNode(project ComposeProjectConfig, op
 }
 
 // createNetworkNodes создает ноды сетей (вторая колонка)
-func (p *ComposeParser) createNetworkNodes(project ComposeProjectConfig, options *GraphLayoutOptions, dimensions *GraphDimensions) ([]ReactFlowNode, map[string]string) {
+func (p *ComposeParser) createNetworkNodes(project *ComposeProjectConfig, options *GraphLayoutOptions, dimensions *GraphDimensions) ([]ReactFlowNode, map[string]string) {
 	nodes := make([]ReactFlowNode, 0)
 	networkNodes := make(map[string]string)
 
@@ -193,7 +193,7 @@ func (p *ComposeParser) createNetworkNodes(project ComposeProjectConfig, options
 }
 
 // createServiceNodes создает ноды сервисов (центральная колонка)
-func (p *ComposeParser) createServiceNodes(project ComposeProjectConfig, options *GraphLayoutOptions, dimensions *GraphDimensions) ([]ReactFlowNode, map[string]string) {
+func (p *ComposeParser) createServiceNodes(project *ComposeProjectConfig, options *GraphLayoutOptions, dimensions *GraphDimensions) ([]ReactFlowNode, map[string]string) {
 	nodes := make([]ReactFlowNode, 0)
 	serviceMap := make(map[string]string)
 
@@ -244,7 +244,7 @@ func (p *ComposeParser) createServiceNodes(project ComposeProjectConfig, options
 }
 
 // createNetworkToServiceEdges создает связи от сетей к сервисам
-func (p *ComposeParser) createNetworkToServiceEdges(project ComposeProjectConfig, serviceNodes []ReactFlowNode, networkNodeMap map[string]string, dimensions *GraphDimensions) []ReactFlowEdge {
+func (p *ComposeParser) createNetworkToServiceEdges(project *ComposeProjectConfig, serviceNodes []ReactFlowNode, networkNodeMap map[string]string, dimensions *GraphDimensions) []ReactFlowEdge {
 	edges := make([]ReactFlowEdge, 0)
 	edgeCounter := 0
 
@@ -304,7 +304,7 @@ func (p *ComposeParser) createNetworkToServiceEdges(project ComposeProjectConfig
 }
 
 // collectVolumeUsage собирает информацию об использовании томов сервисами
-func (p *ComposeParser) collectVolumeUsage(project ComposeProjectConfig, serviceNodes []ReactFlowNode) (map[string][]string, map[string]ReactFlowPosition) {
+func (p *ComposeParser) collectVolumeUsage(project *ComposeProjectConfig, serviceNodes []ReactFlowNode) (map[string][]string, map[string]ReactFlowPosition) {
 	volumeUsage := make(map[string][]string)
 	servicePositions := make(map[string]ReactFlowPosition)
 
@@ -334,7 +334,7 @@ func (p *ComposeParser) collectVolumeUsage(project ComposeProjectConfig, service
 }
 
 // createVolumeNodes создает ноды томов (используемые и неиспользуемые)
-func (p *ComposeParser) createVolumeNodes(project ComposeProjectConfig, options *GraphLayoutOptions, dimensions *GraphDimensions, volumeUsage map[string][]string, servicePositions map[string]ReactFlowPosition) []ReactFlowNode {
+func (p *ComposeParser) createVolumeNodes(project *ComposeProjectConfig, options *GraphLayoutOptions, dimensions *GraphDimensions, volumeUsage map[string][]string, servicePositions map[string]ReactFlowPosition) []ReactFlowNode {
 	nodes := make([]ReactFlowNode, 0)
 
 	// Рассчитываем средние позиции для используемых томов
@@ -513,7 +513,7 @@ func (p *ComposeParser) createVolumeNodes(project ComposeProjectConfig, options 
 }
 
 // createDependsOnEdges создает связи зависимостей между сервисами
-func (p *ComposeParser) createDependsOnEdges(project ComposeProjectConfig, serviceMap map[string]string) []ReactFlowEdge {
+func (p *ComposeParser) createDependsOnEdges(project *ComposeProjectConfig, serviceMap map[string]string) []ReactFlowEdge {
 	edges := make([]ReactFlowEdge, 0)
 	edgeCounter := 0
 
@@ -544,7 +544,7 @@ func (p *ComposeParser) createDependsOnEdges(project ComposeProjectConfig, servi
 }
 
 // createServiceToVolumeEdges создает связи сервисов с томами
-func (p *ComposeParser) createServiceToVolumeEdges(project ComposeProjectConfig, serviceNodes []ReactFlowNode, volumeUsage map[string][]string) []ReactFlowEdge {
+func (p *ComposeParser) createServiceToVolumeEdges(project *ComposeProjectConfig, serviceNodes []ReactFlowNode, volumeUsage map[string][]string) []ReactFlowEdge {
 	edges := make([]ReactFlowEdge, 0)
 	edgeCounter := 0
 
@@ -635,7 +635,7 @@ func (p *ComposeParser) calculateViewport(nodes []ReactFlowNode, options *GraphL
 }
 
 // buildFinalGraph создает финальный граф для React Flow
-func (p *ComposeParser) buildFinalGraph(project ComposeProjectConfig, nodes []ReactFlowNode, edges []ReactFlowEdge, viewport ReactFlowViewport) *ReactFlowGraph {
+func (p *ComposeParser) buildFinalGraph(project *ComposeProjectConfig, nodes []ReactFlowNode, edges []ReactFlowEdge, viewport ReactFlowViewport) *ReactFlowGraph {
 	return &ReactFlowGraph{
 		Nodes:     nodes,
 		Edges:     edges,
