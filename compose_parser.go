@@ -45,8 +45,12 @@ func (p *ComposeParser) ParseFileWithName(filePath string, projectName string) (
 	//}
 
 	if projectName == "" {
-		dir := filepath.Dir(filePath)
-		projectName = filepath.Base(dir)
+		absFile, err := filepath.Abs(filePath)
+		if err != nil {
+			return nil, err
+		}
+		projectDir := filepath.Dir(absFile)
+		projectName = filepath.Base(projectDir)
 		projectName = strings.ToLower(projectName)
 	}
 
