@@ -208,21 +208,21 @@ func (p *ComposeParser) createServiceNodes(project ComposeProjectConfig, options
 		x := dimensions.ServiceStartX
 		y := dimensions.ServiceStartY + serviceIndex*options.ColumnTopGap
 
-		nodeID := fmt.Sprintf("service-%s", serviceName)
+		nodeID := fmt.Sprintf("services-%s", serviceName)
 		serviceMap[serviceName] = nodeID
 
 		nodeColor := "#3b82f6"
 
 		serviceNode := ReactFlowNode{
 			ID:   nodeID,
-			Type: "service",
+			Type: "services",
 			Position: ReactFlowPosition{
 				X: float64(x),
 				Y: float64(y),
 			},
 			Data: ReactFlowNodeData{
 				Label:   serviceName,
-				Type:    "service",
+				Type:    "services",
 				Service: service,
 				Status:  "saved",
 				Properties: map[string]interface{}{
@@ -253,7 +253,7 @@ func (p *ComposeParser) createNetworkToServiceEdges(project ComposeProjectConfig
 	for _, item := range servicesList {
 		serviceName := item.name
 		service := item.service
-		nodeID := fmt.Sprintf("service-%s", serviceName)
+		nodeID := fmt.Sprintf("services-%s", serviceName)
 
 		hasNetworkConnections := false
 		for _, networkName := range service.Networks {
@@ -267,7 +267,7 @@ func (p *ComposeParser) createNetworkToServiceEdges(project ComposeProjectConfig
 				}
 
 				edge := ReactFlowEdge{
-					ID:     fmt.Sprintf("edge-network-service-%s-%s", networkName, serviceName),
+					ID:     fmt.Sprintf("edge-network-services-%s-%s", networkName, serviceName),
 					Source: networkNodeID,
 					Target: nodeID,
 					Type:   "smoothstep",
@@ -287,7 +287,7 @@ func (p *ComposeParser) createNetworkToServiceEdges(project ComposeProjectConfig
 		if !hasNetworkConnections {
 			edgeCounter++
 			edge := ReactFlowEdge{
-				ID:     fmt.Sprintf("edge-compose-service-%d", edgeCounter),
+				ID:     fmt.Sprintf("edge-compose-services-%d", edgeCounter),
 				Source: "docker-compose",
 				Target: nodeID,
 				Type:   "smoothstep",
@@ -310,7 +310,7 @@ func (p *ComposeParser) collectVolumeUsage(project ComposeProjectConfig, service
 
 	// Собираем позиции сервисов
 	for _, node := range serviceNodes {
-		if node.Type == "service" {
+		if node.Type == "services" {
 			servicePositions[node.Data.Label] = node.Position
 		}
 	}
@@ -521,7 +521,7 @@ func (p *ComposeParser) createDependsOnEdges(project ComposeProjectConfig, servi
 
 	for _, item := range servicesList {
 		serviceName := item.name
-		sourceID := fmt.Sprintf("service-%s", serviceName)
+		sourceID := fmt.Sprintf("services-%s", serviceName)
 
 		for _, dependsOn := range item.service.DependsOn {
 			if targetID, exists := serviceMap[dependsOn]; exists {
@@ -552,7 +552,7 @@ func (p *ComposeParser) createServiceToVolumeEdges(project ComposeProjectConfig,
 
 	for _, item := range servicesList {
 		serviceName := item.name
-		sourceID := fmt.Sprintf("service-%s", serviceName)
+		sourceID := fmt.Sprintf("services-%s", serviceName)
 
 		for _, volumeMount := range item.service.Volumes {
 			if volumeMount.Type == "volume" && volumeMount.Source != "" {
@@ -580,7 +580,7 @@ func (p *ComposeParser) createServiceToVolumeEdges(project ComposeProjectConfig,
 				if volumeExists {
 					edgeCounter++
 					edge := ReactFlowEdge{
-						ID:       fmt.Sprintf("edge-service-volume-%d", edgeCounter),
+						ID:       fmt.Sprintf("edge-services-volume-%d", edgeCounter),
 						Source:   sourceID,
 						Target:   targetID,
 						Type:     "smoothstep",

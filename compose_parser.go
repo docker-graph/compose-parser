@@ -128,12 +128,12 @@ func (p *ComposeParser) parseYAML(data []byte, projectName string) (*ComposeProj
 					// Парсим сервис
 					var serviceRaw interface{}
 					if err := serviceValueNode.Decode(&serviceRaw); err != nil {
-						return nil, fmt.Errorf("failed to decode service %s: %v", serviceName, err)
+						return nil, fmt.Errorf("failed to decode services %s: %v", serviceName, err)
 					}
 
 					service, err := p.parseService(serviceName, serviceRaw)
 					if err != nil {
-						return nil, fmt.Errorf("failed to parse service %s: %v", serviceName, err)
+						return nil, fmt.Errorf("failed to parse services %s: %v", serviceName, err)
 					}
 
 					// Устанавливаем порядковый номер
@@ -267,7 +267,7 @@ func (p *ComposeParser) parseService(name string, raw interface{}) (*ComposeServ
 
 	serviceMap, ok := raw.(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("service configuration must be a map")
+		return nil, fmt.Errorf("services configuration must be a map")
 	}
 
 	// Базовые поля
@@ -997,7 +997,7 @@ func (p *ComposeParser) parseExtends(raw interface{}) (*ExtendsConfig, error) {
 		if file, ok := v["file"].(string); ok {
 			extends.File = file
 		}
-		if service, ok := v["service"].(string); ok {
+		if service, ok := v["services"].(string); ok {
 			extends.Service = service
 		}
 	default:

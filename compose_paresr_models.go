@@ -167,7 +167,7 @@ type HealthCheckConfig struct {
 // ExtendsConfig представляет конфигурацию расширения
 type ExtendsConfig struct {
 	File    string `json:"file,omitempty"`
-	Service string `json:"service,omitempty"`
+	Service string `json:"services,omitempty"`
 }
 
 // ComposeProjectConfig представляет полную конфигурацию Docker Compose проекта
@@ -262,7 +262,7 @@ type ComposeProjectStatus struct {
 // ReactFlowNode представляет узел в React Flow графе
 type ReactFlowNode struct {
 	ID       string                 `json:"id"`
-	Type     string                 `json:"type"` // 'service', 'network', 'volume', 'secret', 'config'
+	Type     string                 `json:"type"` // 'services', 'network', 'volume', 'secret', 'config'
 	Position ReactFlowPosition      `json:"position"`
 	Data     ReactFlowNodeData      `json:"data"`
 	Width    int                    `json:"width,omitempty"`
@@ -296,8 +296,8 @@ type ReactFlowPosition struct {
 // ReactFlowNodeData представляет данные узла
 type ReactFlowNodeData struct {
 	Label       string                 `json:"label"`
-	Type        string                 `json:"type"` // 'service', 'network', 'volume', 'secret', 'config'
-	Service     *ComposeServiceConfig  `json:"service,omitempty"`
+	Type        string                 `json:"type"` // 'services', 'network', 'volume', 'secret', 'config'
+	Service     *ComposeServiceConfig  `json:"services,omitempty"`
 	Network     *NetworkConfig         `json:"network,omitempty"`
 	Volume      *VolumeConfig          `json:"volume,omitempty"`
 	Secret      *SecretConfig          `json:"secret,omitempty"`

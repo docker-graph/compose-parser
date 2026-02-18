@@ -48,14 +48,14 @@ services:
 		t.Errorf("Expected 2 services, got %d", len(project.Services))
 	}
 
-	// Check web service
+	// Check web services
 	web, ok := project.Services["web"]
 	if !ok {
 		t.Fatal("Service 'web' not found")
 	}
 
 	if web.Name != "web" {
-		t.Errorf("Expected service name 'web', got '%s'", web.Name)
+		t.Errorf("Expected services name 'web', got '%s'", web.Name)
 	}
 
 	if web.Image != "nginx:latest" {
@@ -77,7 +77,7 @@ services:
 		t.Errorf("Expected NODE_ENV=production, got %s", web.Environment["NODE_ENV"])
 	}
 
-	// Check db service
+	// Check db services
 	db, ok := project.Services["db"]
 	if !ok {
 		t.Fatal("Service 'db' not found")
@@ -478,15 +478,15 @@ services:
 		t.Error("Docker compose node not found")
 	}
 
-	// Check for service nodes
+	// Check for services nodes
 	serviceNodes := 0
 	for _, node := range graph.Nodes {
-		if node.Type == "service" {
+		if node.Type == "services" {
 			serviceNodes++
 		}
 	}
 	if serviceNodes != 2 {
-		t.Errorf("Expected 2 service nodes, got %d", serviceNodes)
+		t.Errorf("Expected 2 services nodes, got %d", serviceNodes)
 	}
 
 	// Check that edges exist
