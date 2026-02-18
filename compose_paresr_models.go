@@ -365,3 +365,20 @@ type serviceWithOrder struct {
 	order   int
 	service *ComposeServiceConfig
 }
+
+// GraphDimensions содержит предварительно рассчитанные размеры и позиции
+type GraphDimensions struct {
+	ServiceCount       int
+	VolumeCount        int
+	NetworkCount       int
+	DockerComposeX     int
+	DockerComposeY     int
+	ServiceHeight      int
+	NetworkHeight      int
+	ServiceBaseY       int
+	NetworkStartY      int
+	ServiceStartX      int
+	ServiceStartY      int
+	VolumeYOffset      int
+	UnusedVolumeStartY int
+}

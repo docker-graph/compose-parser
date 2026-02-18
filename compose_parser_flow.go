@@ -68,23 +68,6 @@ func (p *ComposeParser) initDefaultOptions(options *GraphLayoutOptions) *GraphLa
 	return options
 }
 
-// GraphDimensions содержит предварительно рассчитанные размеры и позиции
-type GraphDimensions struct {
-	ServiceCount       int
-	VolumeCount        int
-	NetworkCount       int
-	DockerComposeX     int
-	DockerComposeY     int
-	ServiceHeight      int
-	NetworkHeight      int
-	ServiceBaseY       int
-	NetworkStartY      int
-	ServiceStartX      int
-	ServiceStartY      int
-	VolumeYOffset      int
-	UnusedVolumeStartY int
-}
-
 // calculateGraphDimensions рассчитывает размеры и позиции для всех элементов графа
 func (p *ComposeParser) calculateGraphDimensions(project ComposeProjectConfig, options *GraphLayoutOptions) *GraphDimensions {
 	serviceCount := len(project.Services)
