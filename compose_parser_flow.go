@@ -275,10 +275,12 @@ func (p *ComposeParser) createNetworkToServiceEdges(project *ComposeProjectConfi
 				}
 
 				edge := ReactFlowEdge{
-					ID:     fmt.Sprintf("edge-network-services-%s-%s", networkName, serviceName),
-					Source: networkNodeID,
-					Target: nodeID,
-					Type:   "smoothstep",
+					ID:          fmt.Sprintf("edge-network-services-%s-%s", networkName, serviceName),
+					Source:      networkNodeID,
+					Target:      nodeID,
+					Type:        "smoothstep",
+					NetworkName: networkName,
+					ServiceName: serviceName,
 					Style: map[string]interface{}{
 						"strokeWidth": 0,
 						"stroke":      "transparent",

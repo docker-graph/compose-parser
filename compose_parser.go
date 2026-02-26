@@ -1,5 +1,5 @@
 // Package compose_parser provides a Go library for parsing Docker Compose files.
-// Version: v0.3.6
+// Version: v0.3.7
 // Author: Docker Graph Team
 // License: MIT
 package compose_parser

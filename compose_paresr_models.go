@@ -283,6 +283,8 @@ type ReactFlowEdge struct {
 	Animated     bool                   `json:"animated,omitempty"`
 	Style        map[string]interface{} `json:"style,omitempty"`
 	Label        string                 `json:"label,omitempty"`
+	NetworkName  string                 `json:"networkName,omitempty"`
+	ServiceName  string                 `json:"serviceName,omitempty"`
 	LabelStyle   map[string]interface{} `json:"labelStyle,omitempty"`
 	LabelBgStyle map[string]interface{} `json:"labelBgStyle,omitempty"`
 }
