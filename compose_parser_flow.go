@@ -287,6 +287,7 @@ func (p *ComposeParser) createNetworkToServiceEdges(project *ComposeProjectConfi
 					},
 					Label:      edgeLabel,
 					LabelStyle: labelStyle,
+					Animated:   true,
 				}
 				edges = append(edges, edge)
 				hasNetworkConnections = true
