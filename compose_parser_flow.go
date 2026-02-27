@@ -161,7 +161,7 @@ func (p *ComposeParser) createNetworkNodes(project *ComposeProjectConfig, option
 		network := item.network
 
 		// Позиционируем сети вертикально во второй колонке
-		x := dimensions.DockerComposeX + 20
+		x := dimensions.DockerComposeX + 30
 		y := dimensions.NetworkStartY + networkIndex*120 // 120px отступ между сетями
 
 		nodeID := fmt.Sprintf("network-%s", networkName)
@@ -192,7 +192,7 @@ func (p *ComposeParser) createNetworkNodes(project *ComposeProjectConfig, option
 			ID:     fmt.Sprintf("edge-compose-network-%s", networkName),
 			Source: "docker-compose",
 			Target: nodeID,
-			Type:   "step",
+			Type:   "traffic",
 		}
 		edges = append(edges, edge)
 	}
@@ -545,7 +545,7 @@ func (p *ComposeParser) createDependsOnEdges(project *ComposeProjectConfig, serv
 					SourceHandle: fmt.Sprintf("%s-source-2", sourceID),
 					Target:       targetID,
 					TargetHandle: fmt.Sprintf("%s-target-2", targetID),
-					Type:         "smoothstep",
+					// Type:         "smoothstep",
 				}
 				edges = append(edges, edge)
 			}
