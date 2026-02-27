@@ -1,5 +1,5 @@
 // Docker Compose parser for Go
-// Version: v0.3.7
+// Version: v0.3.8
 // Author: Docker Graph Team
 // License: MIT
 module github.com/docker-graph/compose-parser

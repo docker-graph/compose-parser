@@ -1,5 +1,5 @@
 // Package compose_parser provides a Go library for parsing Docker Compose files.
-// Version: v0.3.7
+// Version: v0.3.8
 // Author: Docker Graph Team
 // License: MIT
 package compose_parser
@@ -1227,7 +1227,7 @@ func (p *ComposeParser) ParseFromDirectory(dirPath string) ([]*ComposeProjectCon
 	var projects []*ComposeProjectConfig
 
 	// Ищем файлы docker-compose
-	patterns := []string{"docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml"}
+	patterns := []string{"docker-compose.yaml", "123232docker-compose.yaml2", "compose.yml", "compose.yaml"}
 
 	for _, pattern := range patterns {
 		filePath := filepath.Join(dirPath, pattern)

@@ -297,10 +297,11 @@ func (p *ComposeParser) createNetworkToServiceEdges(project *ComposeProjectConfi
 		if !hasNetworkConnections {
 			edgeCounter++
 			edge := ReactFlowEdge{
-				ID:     fmt.Sprintf("edge-compose-services-%d", edgeCounter),
-				Source: "docker-compose",
-				Target: nodeID,
-				Type:   "smoothstep",
+				ID:       fmt.Sprintf("edge-compose-services-%d", edgeCounter),
+				Source:   "docker-compose",
+				Target:   nodeID,
+				Type:     "smoothstep",
+				Animated: true,
 				Style: map[string]interface{}{
 					"strokeWidth":     1.5,
 					"strokeDasharray": "5,5",
@@ -544,7 +545,6 @@ func (p *ComposeParser) createDependsOnEdges(project *ComposeProjectConfig, serv
 					Target:       targetID,
 					TargetHandle: fmt.Sprintf("%s-target-2", targetID),
 					Type:         "smoothstep",
-					Animated:     true,
 				}
 				edges = append(edges, edge)
 			}

@@ -2,11 +2,11 @@
 
 [![Go Version](https://img.shields.io/badge/go-1.24+-00ADD8.svg)](https://golang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-v0.3.7-red.svg)](https://github.com/docker-graph/compose-parser)
+[![Version](https://img.shields.io/badge/version-v0.3.8-red.svg)](https://github.com/docker-graph/compose-parser)
 
 A Go library for parsing Docker Compose files (docker-compose.yml) with support for Docker Compose specification v3 and v2.
 
-**Version:** v0.3.7 
+**Version:** v0.3.8 
 **Author:** Docker Graph Team  
 **License:** MIT
 
@@ -44,7 +44,7 @@ func main() {
     parser := compose_parser.NewComposeParser()
     
     // Parse a Docker Compose file
-    project, err := parser.ParseFile("docker-compose.yml")
+    project, err := parser.ParseFile("docker-compose.yaml")
     if err != nil {
         log.Fatal(err)
     }
@@ -119,7 +119,7 @@ Parses Docker Compose files from a directory (supports multiple compose files).
 
 ```go
 parser := compose_parser.NewComposeParser()
-project, err := parser.ParseFile("docker-compose.yml")
+project, err := parser.ParseFile("docker-compose.yaml")
 if err != nil {
     log.Fatal(err)
 }
@@ -136,7 +136,7 @@ for serviceName, service := range project.Services {
 
 ```go
 parser := compose_parser.NewComposeParser()
-project, err := parser.ParseFile("docker-compose.yml")
+project, err := parser.ParseFile("docker-compose.yaml")
 if err != nil {
     log.Fatal(err)
 }
