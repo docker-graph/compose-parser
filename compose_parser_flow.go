@@ -192,7 +192,7 @@ func (p *ComposeParser) createNetworkNodes(project *ComposeProjectConfig, option
 			ID:     fmt.Sprintf("edge-compose-network-%s", networkName),
 			Source: "docker-compose",
 			Target: nodeID,
-			Type:   "traffic",
+			Type:   "smoothstep",
 		}
 		edges = append(edges, edge)
 	}
